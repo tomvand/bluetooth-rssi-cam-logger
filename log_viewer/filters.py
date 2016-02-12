@@ -163,6 +163,7 @@ def windowed_variance_detector(time, rssi, data):
     wbase = int(data_fields[0])
     winstant = int(data_fields[1])
     r = float(data_fields[2])
+    std_min = float(data_fields[3])
 
     psa_base = 0
     sma_base = 0
@@ -183,7 +184,7 @@ def windowed_variance_detector(time, rssi, data):
         # Update the variance of the base RSSI variance
         var_var, queue_var, psa_var, sma_var, unused = running_variance(queue_var, psa_var, sma_var, var_base)
         # Calculate the output of the filter
-        result.append(var_event - sma_var - r*math.sqrt(var_var))
+        result.append(var_event - sma_var - r*max(std_min, math.sqrt(var_var)))
     return result
 
 

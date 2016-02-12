@@ -4,6 +4,7 @@ import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as pltdates
 import numpy
+import sys
 
 from filters import filter_table
 from show_image import show_image
@@ -17,12 +18,16 @@ parser.add_argument("--start", default="2016-01-01 00:00:00", help="skip entries
 parser.add_argument("--end", default="2050-01-01 00:00:00", help="skip entries after this time ('YYYY-MM-DD HH:MM:SS')")
 parser.add_argument("--filter", default=None, help="filter to post-process data, see filters.py")
 parser.add_argument("--filterdata", default="", help="additional data for the filter")
+parser.add_argument("--device", default=None, help="only show results for this device address")
+parser.add_argument("--event", action="store_true", help="highglight events when the filtered value is larger than 0")
 args = parser.parse_args()
 
 input_name = args.input_file
 skip = args.skip
 start_time = datetime.datetime.strptime(args.start, "%Y-%m-%d %H:%M:%S")
 end_time = datetime.datetime.strptime(args.end, "%Y-%m-%d %H:%M:%S")
+device_filter = args.device
+show_events = args.event
 
 filter_data = args.filterdata
 filter_fn = None
@@ -50,6 +55,8 @@ rssi_log = {"addresses": set()}
 for name in rssi_filenames:
     for line in zf.read(name).splitlines():
         field = line.split('\t')
+        if device_filter and field[1].lower() != device_filter.lower():
+            continue
         time = datetime.datetime.strptime(field[0], "%Y-%m-%d %H:%M:%S.%f")
         if time >= start_time and time <= end_time:
             if not field[1] in rssi_log["addresses"]:
@@ -63,6 +70,9 @@ for name in rssi_filenames:
 print "The following addresses were detected:"
 for address in rssi_log["addresses"]:
     print address
+if len(rssi_log["addresses"]) == 0:
+    print "No devices were found."
+    sys.exit(0)
 
 # Show raw RSSI values
 print "Plotting..."
@@ -89,6 +99,19 @@ if filter_fn:
         rssi_log[address]["filtered"] = filter_fn(rssi_log[address]["timestamp"], rssi_log[address]["rssi"], filter_data)
         plt.plot(rssi_log[address]["timestamp"][::skip], rssi_log[address]["filtered"][::skip])
     plt.draw()
+
+# Show detected events if required
+if show_events:
+    for address in rssi_log["addresses"]:
+        event_start = -1
+        for k in xrange(len(rssi_log[address]["filtered"])):
+            if rssi_log[address]["filtered"][k] > 0 and event_start == -1:
+                event_start = k
+            elif rssi_log[address]["filtered"][k] <= 0 and event_start != -1:
+                # Event found
+                plt.axvspan(rssi_log[address]["timestamp"][event_start], rssi_log[address]["timestamp"][k], color='r', alpha=0.5, lw=0)
+                event_start = -1
+
 
 # Add a click event handler which will show the webcam image from a specified time
 def onclick(event):
