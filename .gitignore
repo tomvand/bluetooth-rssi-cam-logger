@@ -1,3 +1,13 @@
+# Recorded logs
+log-*
+
+# Temporary files
+*~
+
+# PyCharm project files
+*/.idea/*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
