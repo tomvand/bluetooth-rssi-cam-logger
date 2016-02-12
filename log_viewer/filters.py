@@ -4,7 +4,7 @@
 
 import numpy
 import datetime
-import sys
+import math
 
 def template_function(time, rssi, data):
     return rssi
@@ -96,11 +96,15 @@ def causal_ma_event(time, rssi, data):
 
 
 def wang2013(time, rssi, data):
+    # Data: sigma (try 1.6 (night measurement) or 4.75 (day measurement) for ef:36:...).
+    # Result: obstacle detected when the signal is larger than 0.
     sigma = float(data)
-    return [diff < -2*sigma for diff in difference(time, rssi, data)]
+    return [-2*sigma - diff for diff in difference(time, rssi, data)]
 
 
 def youssef2007a(time, rssi, data):
+    # Data: wl,ws,tau
+    # Result: obstacle detected when signal is larger than 0.
     data_fields = data.split(',')
     wl = int(data_fields[0])
     ws = int(data_fields[1])
@@ -113,14 +117,17 @@ def youssef2007a(time, rssi, data):
     for k in xrange(-ws-wl+1, len(rssi)-ws-wl+1):
         if k >= 0:
             alk = 1/float(wl) * (cumsum[k+wl-1] - cumsum[k])
-            ask = 1/float(ws) * (cumsum[k+wl+ws-1] - cumsum[k-wl])
-            result.append(abs((alk-ask)/alk) > tau)
+            ask = 1/float(ws) * (cumsum[k+wl+ws-1] - cumsum[k+wl])
+            result.append(abs((alk-ask)/alk) - tau)
+            # print "{}: wl = {}, ws = {}, alk = {}, ask = {}. rel.diff = {}".format(k, wl, ws, alk, ask, abs((alk-ask)/alk))
         else:
             result.append(False)
     return result
 
 
 def youssef2007b(time, rssi, data):
+    # Data: w,vtbar,sigmav,r
+    # Result: obstacle detected when the signal is larger than 0.
     data_fields = data.split(',')
     w = int(data_fields[0])
     vtbar = float(data_fields[1])
@@ -131,20 +138,22 @@ def youssef2007b(time, rssi, data):
     for k in xrange(-w+1, len(rssi)-w+1):
         if k >= 0:
             vt = youssef2007b_vt(rssi[k:k+w-1])
-            result.append(vt > vtbar + r*sigmav)
+            result.append(vt - vtbar - r*sigmav)
         else:
-            result.append(False)
+            result.append(0.0)
     return result
 
 def youssef2007b_vt(qi):
     return numpy.var(qi)
 
 def youssef2007b_training(time, rssi, data):
+    # Data: w
     w = int(data)
 
     vt = []
     for k in xrange(0,len(rssi)-w+1):
         vt.append(youssef2007b_vt(rssi[k:k+w-1]))
+    # print "Training results:\n vtbar = {}, sigmav = {}.".format(numpy.mean(vt), numpy.std(vt, ddof=len(vt)-w+1))
     print "Training results:\n vtbar = {}, sigmav = {}.".format(numpy.mean(vt), numpy.std(vt))
     return rssi
 
