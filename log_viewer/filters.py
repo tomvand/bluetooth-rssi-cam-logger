@@ -158,6 +158,50 @@ def youssef2007b_training(time, rssi, data):
     return rssi
 
 
+def windowed_variance_detector(time, rssi, data):
+    data_fields = data.split(',')
+    wbase = int(data_fields[0])
+    winstant = int(data_fields[1])
+    r = float(data_fields[2])
+
+    psa_base = 0
+    sma_base = 0
+    psa_var = 0
+    sma_var = 0
+    psa_event = 0
+    sma_event = 0
+
+    queue_base = [0] * winstant
+    queue_var = [0] * wbase
+    queue_event = [0] * winstant
+
+    result = []
+    for k in xrange(len(rssi)):
+        # Update the moving variances of RSSI
+        var_event, queue_event, psa_event, sma_event, shift = running_variance(queue_event, psa_event, sma_event, rssi[k])
+        var_base, queue_base, psa_base, sma_base, unused = running_variance(queue_base, psa_base, sma_base, shift)
+        # Update the variance of the base RSSI variance
+        var_var, queue_var, psa_var, sma_var, unused = running_variance(queue_var, psa_var, sma_var, var_base)
+        # Calculate the output of the filter
+        result.append(var_event - sma_var - r*math.sqrt(var_var))
+    return result
+
+
+
+def running_variance(queue, psa, sma, new):
+    # See http://stackoverflow.com/questions/5147378/rolling-variance-algorithm
+    # Update the estimated variance
+    old = queue[0]
+    n = len(queue)
+    psa += (new**2 - old**2) / float(n)
+    sma += (new - old) / float(n)
+    var = psa - sma**2
+    # Shift the queue
+    queue = queue[1:] + [new]
+    # Return the results
+    return var, queue, psa, sma, old
+
+
 filter_table = {
     "default": template_function,
     "difference": difference,
@@ -170,5 +214,6 @@ filter_table = {
     "wang2013": wang2013,
     "youssef2007a": youssef2007a,
     "youssef2007b": youssef2007b,
-    "youssef2007b_training": youssef2007b_training
+    "youssef2007b_training": youssef2007b_training,
+    "windowed_variance": windowed_variance_detector
 }
