@@ -57,7 +57,11 @@ for name in rssi_filenames:
         field = line.split('\t')
         if device_filter and field[1].lower() != device_filter.lower():
             continue
-        time = datetime.datetime.strptime(field[0], "%Y-%m-%d %H:%M:%S.%f")
+        try:
+            time = datetime.datetime.strptime(field[0], "%Y-%m-%d %H:%M:%S.%f")
+        except:
+            time = datetime.datetime.strptime(field[0], "%Y-%m-%d %H:%M:%S")
+            print "(Found incomplete timestamp at {})".format(time)
         if time >= start_time and time <= end_time:
             if not field[1] in rssi_log["addresses"]:
                 rssi_log["addresses"].add(field[1])
