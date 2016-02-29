@@ -55,6 +55,8 @@ def moving_minimum(time, rssi, data):
     return window_filter(time, rssi, window, moving_minimum_fn)
 
 def moving_minimum_fn(time, rssi, unused, window_start, window_end):
+    if len(rssi[window_start:window_end]) <= 0:
+        return float('NaN')
     return min(rssi[window_start:window_end])
 
 
