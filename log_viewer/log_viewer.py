@@ -87,7 +87,7 @@ plt.ylabel("RSSI [dBm]")
 for address in rssi_log["addresses"]:
     plt.plot(rssi_log[address]["timestamp"][::skip], rssi_log[address]["rssi"][::skip], ".", alpha=0.5)
     plt.hold(True)
-    print '{} mean: {} dBm, variance: {} dB^2.'.format(address, numpy.mean(rssi_log[address]["rssi"]), numpy.var(rssi_log[address]["rssi"]))
+    print '{} median: {}, mean: {} dBm, variance: {} dB^2.'.format(address, numpy.median(rssi_log[address]["rssi"]), numpy.mean(rssi_log[address]["rssi"]), numpy.var(rssi_log[address]["rssi"]))
 plt.grid()
 plt.legend(rssi_log["addresses"])
 ax = plt.gca()
