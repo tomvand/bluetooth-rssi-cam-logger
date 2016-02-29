@@ -36,6 +36,8 @@ def moving_average(time, rssi, data):
 
 def moving_average_fn(time, rssi, cumsum, window_start, window_end):
     # Data contains a cumsum list of rssi values
+    if window_end - window_start == 0:
+        return float('NaN')
     return float(cumsum[window_end]-cumsum[window_start]) / (window_end-window_start)
     # return numpy.mean(rssi[window_start:window_end]) # Slower because it needs to sum every time step
 
