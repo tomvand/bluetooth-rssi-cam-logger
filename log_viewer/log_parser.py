@@ -2,12 +2,12 @@ import zipfile
 import sys
 import datetime
 
-def parseLog(filename, device_filter=None, start_time="2016-01-01 00:00:00", end_time="2050-01-01 00:00:00"):
+def parseLog(filename, device_filter=None, start_time=datetime.datetime(2015,1,1), end_time=datetime.datetime(2050,1,1)):
     """
     :param filename: path to zipfile containing .rssi files
     :param device_filter: if specified, only parse results from this device
-    :param start_time: (string, "YYYY-MM-DD HH:MM:SS") ignore entries before this time
-    :param end_time: (string, "YYYY-MM-DD HH:MM:SS") ignore entries after this time
+    :param start_time: (datetime) ignore entries before this time
+    :param end_time: (datetime) ignore entries after this time
     :return: RSSI log: {
         ["addresses"]: set(address, address, ...)
         ["<address>"]:
