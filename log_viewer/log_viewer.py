@@ -4,8 +4,8 @@ import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as pltdates
 import numpy
-import sys
 
+from log_parser import parseLog
 from filters import filter_table
 from show_image import show_image
 
@@ -38,45 +38,8 @@ if args.filter:
         print "Can find filter function '{}'!".format(args.filter)
 
 
-# Open the log file
-print "Reading from {}...".format(input_name)
-zf = zipfile.ZipFile(input_name)
-
-# Get the .rssi filenames
-rssi_filenames = [name for name in zf.namelist() if name.endswith(".rssi")]
-rssi_filenames.sort()
-print "RSSI logs found:"
-for name in rssi_filenames:
-    print name
-
-# Import RSSI data
-print "Importing data, this can take a while..."
-rssi_log = {"addresses": set()}
-for name in rssi_filenames:
-    for line in zf.read(name).splitlines():
-        field = line.split('\t')
-        if device_filter and field[1].lower() != device_filter.lower():
-            continue
-        try:
-            time = datetime.datetime.strptime(field[0], "%Y-%m-%d %H:%M:%S.%f")
-        except:
-            time = datetime.datetime.strptime(field[0], "%Y-%m-%d %H:%M:%S")
-            print "(Found incomplete timestamp at {})".format(time)
-        if time >= start_time and time <= end_time:
-            if not field[1] in rssi_log["addresses"]:
-                rssi_log["addresses"].add(field[1])
-                rssi_log[field[1]] = {"timestamp": [], "rssi": []}
-            rssi_log[field[1]]["timestamp"].append(time)
-            rssi_log[field[1]]["rssi"].append(int(field[2]))
-        elif time > end_time:
-            break
-
-print "The following addresses were detected:"
-for address in rssi_log["addresses"]:
-    print address
-if len(rssi_log["addresses"]) == 0:
-    print "No devices were found."
-    sys.exit(0)
+# Import/parse
+rssi_log = parseLog(input_name, device_filter=device_filter, start_time=start_time, end_time=end_time)
 
 # Show raw RSSI values
 print "Plotting..."
@@ -118,6 +81,7 @@ if show_events:
 
 
 # Add a click event handler which will show the webcam image from a specified time
+zf = zipfile.ZipFile(input_name)
 def onclick(event):
     if event.xdata:
         time = pltdates.num2date(event.xdata)
