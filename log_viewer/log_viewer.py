@@ -45,7 +45,7 @@ rssi_log = parseLog(input_name, device_filter=device_filter, start_time=start_ti
 print "Plotting..."
 fig = plt.figure()
 plt.xlabel("Time")
-plt.ylabel("RSSI [dBm]")
+plt.ylabel("RSS [dBm]")
 
 for address in rssi_log["addresses"]:
     plt.plot(rssi_log[address]["timestamp"][::skip], rssi_log[address]["rssi"][::skip], ".", alpha=0.5)

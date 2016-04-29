@@ -6,6 +6,8 @@ import numpy
 import datetime
 import math
 
+from collections import Counter
+
 def template_function(time, rssi, data):
     return rssi
 
@@ -221,6 +223,35 @@ def windowed_average_detector(time, rssi, data):
     return result
 
 
+def baseline_filter(time, rssi, data):
+    data_fields = data.split(',')
+    wbase = int(data_fields[0])
+    winstant = int(data_fields[1])
+    r = float(data_fields[2])
+
+    psa_base = 0
+    sma_base = 0
+    psa_event = 0
+    sma_event = 0
+
+    queue_base = [0] * wbase
+    queue_event = [0] * winstant
+
+    var_base = 10000
+
+    result = []
+    for k in xrange(len(rssi)):
+        # Update the moving variances of RSSI
+        var_event, queue_event, psa_event, sma_event, shift = running_variance(queue_event, psa_event, sma_event, rssi[k])
+        # Calculate the output of the filter
+        diff = -(sma_event-sma_base) - r*math.sqrt(var_base)
+        result.append(sma_base)
+        # Update the baseline if no event occured
+        if k < (wbase+winstant) or diff < 0:
+            var_base, queue_base, psa_base, sma_base, unused = running_variance(queue_base, psa_base, sma_base, shift)
+    return result
+
+
 
 def running_variance(queue, psa, sma, new):
     # See http://stackoverflow.com/questions/5147378/rolling-variance-algorithm
@@ -234,6 +265,35 @@ def running_variance(queue, psa, sma, new):
     queue = queue[1:] + [new]
     # Return the results
     return max(0.0, var), queue, psa, sma, old
+
+
+def windowed_minimum_detector(time, rssi, data):
+    data_fields = data.split(',')
+    window_size = float(data_fields[0])
+    threshold = float(data_fields[1])
+    window = []
+
+    result = []
+    for value in rssi:
+        if len(window) < window_size or value > min(window) - threshold:
+            window.append(value)
+            if len(window)>window_size:
+                window.pop(0)
+        result.append(min(window) - threshold - value)
+
+    return result
+
+
+def histogram_probability(time, rssi, data):
+    window_size = int(data)
+
+    result = []
+    for k in xrange(len(rssi)):
+        start = max(0, k+1-window_size)
+        cnt = Counter(int(i) for i in rssi[start:k+1])
+        p = float(cnt[int(rssi[k])]) / (k+1-start)
+        result.append(p)
+    return result
 
 
 filter_table = {
@@ -250,5 +310,8 @@ filter_table = {
     "youssef2007b": youssef2007b,
     "youssef2007b_training": youssef2007b_training,
     "windowed_variance": windowed_variance_detector,
-    "windowed_average": windowed_average_detector
+    "windowed_average": windowed_average_detector,
+    "windowed_minimum": windowed_minimum_detector,
+    "histogram": histogram_probability,
+    "baseline": baseline_filter,
 }
